@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"os"
 	"time"
@@ -10,10 +11,13 @@ import (
 	"github.com/jamiealquiza/tachymeter"
 )
 
-const nodes, vnodes = 10, 100
-
 func main() {
-	t := tachymeter.New(&tachymeter.Config{Size: 1000})
+	var nodes, vnodes int
+
+	flag.IntVar(&nodes, "nodes", 10, "Number of nodes")
+	flag.IntVar(&vnodes, "vnodes", 10, "Number of vnodes per node")
+
+	flag.Parse()
 
 	f, err := os.Open("keys.txt")
 	if err != nil {
@@ -27,6 +31,8 @@ func main() {
 	for scanner.Scan() {
 		keys = append(keys, scanner.Text())
 	}
+
+	t := tachymeter.New(&tachymeter.Config{Size: len(keys)})
 
 	ring := ch.HashRing{Vnodes: vnodes}
 
