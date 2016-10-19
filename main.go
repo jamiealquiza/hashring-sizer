@@ -3,15 +3,18 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"math"
 	"os"
-	"sort"
 	"time"
 
 	ch "github.com/jamiealquiza/polymur/consistenthash"
+	"github.com/jamiealquiza/tachymeter"
 )
 
+const nodes, vnodes = 10, 100
+
 func main() {
+	t := tachymeter.New(&tachymeter.Config{Size: 1000})
+
 	f, err := os.Open("keys.txt")
 	if err != nil {
 		fmt.Println(err)
@@ -25,68 +28,39 @@ func main() {
 		keys = append(keys, scanner.Text())
 	}
 
-	ring := ch.HashRing{Vnodes: 100000}
+	ring := ch.HashRing{Vnodes: vnodes}
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < nodes; i++ {
 		node := fmt.Sprintf("this-is-node-%d", i)
+		start := time.Now()
 		ring.AddNode(node, node)
+		t.AddTime(time.Since(start))
+		t.AddCount(1)
 	}
 
-	nodeCount := make(map[string]int)
-	lat := make([]time.Duration, len(keys))
+	fmt.Printf("\n> Inserted %d nodes with %d vnodes:\n", nodes, vnodes)
+	t.Calc().Dump()
+	t.Reset()
+	fmt.Println()
 
-	for i, k := range keys {
-		s := time.Now()
+	nodeCount := make(map[string]int)
+
+	fmt.Printf("\n> Node balance:\n")
+	for _, k := range keys {
+		start := time.Now()
 		n, _ := ring.GetNode(k)
-		lat[i] = time.Since(s)
+		t.AddTime(time.Since(start))
+		t.AddCount(1)
 		nodeCount[n]++
 	}
 
+	var count int
 	// Print node counts.
 	for k, v := range nodeCount {
 		fmt.Printf("%s: %d\n", k, v)
+		count += v
 	}
 
-	// Get min/max latency.
-	var highest time.Duration
-	lowest := 10 * time.Second
-	for _, v := range lat {
-		if v > highest {
-			highest = v
-		}
-		if v < lowest {
-			lowest = v
-		}
-	}
-
-	fmt.Printf("Max latency: %s\n", highest)
-	fmt.Printf("Min latency: %s\n", lowest)
-
-	// Get sorted latencies.
-	latInt := make([]int, len(lat))
-	for n := range lat {
-		latInt[n] = int(lat[n])
-	}
-
-	sort.Ints(latInt)
-
-	for n := range lat {
-		lat[n] = time.Duration(latInt[n])
-	}
-
-	// Get other stuff.
-	var latTotal time.Duration
-	for _, v := range lat {
-		latTotal += v
-	}
-	fmt.Printf("Avg. lantency: %s\n",
-		time.Duration(int(latTotal)/len(lat)))
-
-	if len(lat)%2 == 0 {
-		med := (lat[len(lat)/2] + lat[(len(lat)/2)+1]) / 2
-		fmt.Printf("Median latency: %s\n", med)
-	} else {
-		fmt.Printf("Median latency: %s\n",
-			lat[int(math.Floor(float64(len(lat)/2)))])
-	}
+	fmt.Printf("\n> Performed %d lookups\n", count)
+	t.Calc().Dump()
 }
