@@ -41,7 +41,6 @@ func main() {
 		start := time.Now()
 		ring.AddNode(node, node)
 		t.AddTime(time.Since(start))
-		t.AddCount(1)
 	}
 
 	fmt.Printf("\n> Inserted %d nodes with %d vnodes:\n", nodes, vnodes)
@@ -56,7 +55,6 @@ func main() {
 		start := time.Now()
 		n, _ := ring.GetNode(k)
 		t.AddTime(time.Since(start))
-		t.AddCount(1)
 		nodeCount[n]++
 	}
 
